@@ -5,4 +5,4 @@ from .graphretrieval import GraphRAG
 __all__ = ['GraphRAG', 'KnowledgeRAG']
 
 # Version information
-__version__ = 'minus2'
+__version__ = '1.0.0'
