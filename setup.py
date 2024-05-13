@@ -12,7 +12,14 @@ setup(
     install_requires=[
       'langchain_openai',
       'langchain',
-      'sentence_transformers'
+      'sentence_transformers',
+      'langchain-community', 
+      'langchain-openai',
+      'langchain-experimental',
+      'neo4j',
+      'wikipedia',
+      'tiktoken',
+      'pypdf2'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha'
