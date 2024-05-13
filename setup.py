@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='GraphRetrieval',
-    version='minus2',
+    version='0.1',
     description='Graph retrieval',
     long_description='Graph retrieval',
     author='JVNK',
