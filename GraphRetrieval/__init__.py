@@ -1,5 +1,5 @@
 # Importing objects from modules
-from .graphretrieval import GraphRAG
+from .GraphRetrieval import GraphRAG, KnowledgeRAG
 
 # Defining the public API
 __all__ = ['GraphRAG', 'KnowledgeRAG']
