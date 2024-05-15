@@ -52,6 +52,7 @@ class Entities(BaseModel):
         "appear in the text",
     )
 
+
 import os
 import networkx as nx
 from sentence_transformers import SentenceTransformer
@@ -161,7 +162,7 @@ class GraphRAG():
             _, current_node, similarity_so_far = heapq.heappop(pq)
 
             if current_node is not None:
-                similar_nodes.append((current_node, similarity_so_far))
+                similar_nodes.append(current_node)
 
             compute_similarity_partial = delayed(self.compute_similarity)
             results = Parallel(n_jobs=-1)(compute_similarity_partial(neighbor, graph, documents, query_embedding) for neighbor in (graph.neighbors(current_node) if current_node is not None else range(len(documents)-1)))
@@ -180,12 +181,7 @@ class GraphRAG():
         query_embedding = model.encode([query_text])[0]
         similarities = cosine_similarity([query_embedding], self.embeddings)
         sorted_indices = sorted(range(len(similarities[0])), key=lambda x: -similarities[0][x])[:k]
-        similar_nodes = Parallel(n_jobs=-1)(delayed(self._get_similarity)(i, similarities, sorted_indices) for i in range(k))
-        return similar_nodes
-
-    def _get_similarity(self, i, similarities, sorted_indices):
-        idx = sorted_indices[i]
-        return self.documents[idx], similarities[0][idx]
+        return [self.documents[idx] for idx in sorted_indices]
 
     def nearest_neighbors_sklearn_parallel(self, embeddings, query_text, k=5):
         model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -196,12 +192,7 @@ class GraphRAG():
 
         distances, indices = nn_model.kneighbors([query_embedding])
 
-        similar_nodes = Parallel(n_jobs=-1)(delayed(self._get_similarity_sklearn)(i, distances, indices, self.documents) for i in range(k))
-        return similar_nodes
-
-    def _get_similarity_sklearn(self, i, distances, indices, documents):
-        idx = indices[0][i]
-        return documents[idx], 1 - distances[0][i]
+        return [self.documents[idx] for idx in indices[0]]
 
     def greedy_bfs_search_parallel(self, query_text, k=5):
         model = SentenceTransformer(self.embedding_model)
@@ -216,7 +207,7 @@ class GraphRAG():
             _, current_node, similarity_so_far = pq.get()
 
             if current_node is not None:
-                similar_nodes.append((current_node, similarity_so_far))
+                similar_nodes.append(current_node)
 
             compute_similarity_partial = delayed(self.compute_similarity)
             results = Parallel(n_jobs=-1)(compute_similarity_partial(neighbor, self.graph, self.documents, query_embedding) for neighbor in (self.graph.neighbors(current_node) if current_node is not None else range(len(self.documents)-1)))
@@ -231,19 +222,18 @@ class GraphRAG():
         return similar_nodes
 
     def similarity_search(self, query, retrieval_model="a_star", k = 5):
-        retrieval_model=self.retrieval_model
         similar_nodes = []
 
         if retrieval_model == "a_star":
-            similar_indices = [index for index, _ in self.a_star_search_parallel(self.graph, self.documents, self.embeddings, query, k)]
+            similar_nodes = self.a_star_search_parallel(self.graph, self.documents, self.embeddings, query, k)
         elif retrieval_model == "nearest_neighbors":
-            similar_indices = [index for index, _ in self.nearest_neighbors_parallel(query, k)]
+            similar_nodes = self.nearest_neighbors_parallel(query, k)
         elif retrieval_model == "nearest_neighbors1":
-            similar_indices = [index for index, _ in self.nearest_neighbors_sklearn_parallel(self.embeddings, query, k)]
+            similar_nodes = self.nearest_neighbors_sklearn_parallel(self.embeddings, query, k)
         elif retrieval_model == "greedy":
-            similar_indices = [index for index, _ in self.greedy_bfs_search_parallel(query, k)]
+            similar_nodes = self.greedy_bfs_search_parallel(query, k)
 
-        return [self.documents[index] for index in similar_indices]
+        return similar_nodes
 
     def queryLLM(self, query):
         similar_documents = self.similarity_search(query)
@@ -317,6 +307,7 @@ class GraphRAG():
                 text += pdf_reader.getPage(page_num).extractText()
         self.graph, self.documents, self.embeddings = self.constructGraph(text, similarity_threshold=similarity_threshold)
         print("Graph created Successfully!")
+
 
 
 _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question,
