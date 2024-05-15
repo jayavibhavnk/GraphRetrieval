@@ -12,7 +12,6 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 import os
 from langchain_community.graphs import Neo4jGraph
-from langchain.document_loaders import WikipediaLoader
 from langchain.text_splitter import TokenTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_experimental.graph_transformers import LLMGraphTransformer
@@ -52,6 +51,28 @@ class Entities(BaseModel):
         description="All the person, organization, or business entities that "
         "appear in the text",
     )
+
+import os
+import networkx as nx
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.neighbors import NearestNeighbors
+import heapq
+from joblib import Parallel, delayed
+from langchain_text_splitters import CharacterTextSplitter
+from openai import OpenAI
+import pickle
+import langchain_core
+import PyPDF2
+from queue import PriorityQueue
+
+
+class GraphDocument(langchain_core.documents.base.Document):
+    def __init__(self, page_content, metadata):
+        super().__init__(page_content=page_content, metadata=metadata)
+
+    def __repr__(self):
+        return f"GraphDocument(page_content='{self.page_content}', metadata={self.metadata})"
 
 class GraphRAG():
     def __init__(self):
@@ -115,7 +136,7 @@ class GraphRAG():
         print("Graph created Successfully!")
 
         return file_list
-    
+
     def create_graph_from_text(self, text, similarity_threshold=0):
         self.graph, self.documents, self.embeddings = self.constructGraph(text, similarity_threshold=similarity_threshold)
         print("Graph created Successfully!")
@@ -136,15 +157,11 @@ class GraphRAG():
         visited = set()
         similar_nodes = []
 
-        while pq:
+        while pq and len(similar_nodes) < k:
             _, current_node, similarity_so_far = heapq.heappop(pq)
 
             if current_node is not None:
-                node_text = documents[current_node].page_content
-                similar_nodes.append((node_text, similarity_so_far))
-
-            if len(similar_nodes) >= k:
-                break
+                similar_nodes.append((current_node, similarity_so_far))
 
             compute_similarity_partial = delayed(self.compute_similarity)
             results = Parallel(n_jobs=-1)(compute_similarity_partial(neighbor, graph, documents, query_embedding) for neighbor in (graph.neighbors(current_node) if current_node is not None else range(len(documents)-1)))
@@ -157,7 +174,7 @@ class GraphRAG():
                         visited.add(neighbor)
 
         return similar_nodes
-    
+
     def nearest_neighbors_parallel(self, query_text, k=5):
         model = SentenceTransformer('all-MiniLM-L6-v2')
         query_embedding = model.encode([query_text])[0]
@@ -165,10 +182,10 @@ class GraphRAG():
         sorted_indices = sorted(range(len(similarities[0])), key=lambda x: -similarities[0][x])[:k]
         similar_nodes = Parallel(n_jobs=-1)(delayed(self._get_similarity)(i, similarities, sorted_indices) for i in range(k))
         return similar_nodes
-    
+
     def _get_similarity(self, i, similarities, sorted_indices):
         idx = sorted_indices[i]
-        return self.documents[idx].page_content, similarities[0][idx]
+        return self.documents[idx], similarities[0][idx]
 
     def nearest_neighbors_sklearn_parallel(self, embeddings, query_text, k=5):
         model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -181,17 +198,17 @@ class GraphRAG():
 
         similar_nodes = Parallel(n_jobs=-1)(delayed(self._get_similarity_sklearn)(i, distances, indices, self.documents) for i in range(k))
         return similar_nodes
-        
+
     def _get_similarity_sklearn(self, i, distances, indices, documents):
         idx = indices[0][i]
-        return documents[idx].page_content, 1 - distances[0][i]
-    
+        return documents[idx], 1 - distances[0][i]
+
     def greedy_bfs_search_parallel(self, query_text, k=5):
         model = SentenceTransformer(self.embedding_model)
         query_embedding = model.encode([query_text])[0]
 
         pq = PriorityQueue()
-        pq.put((0, None, 0)) 
+        pq.put((0, None, 0))
         visited = set()
         similar_nodes = []
 
@@ -199,8 +216,7 @@ class GraphRAG():
             _, current_node, similarity_so_far = pq.get()
 
             if current_node is not None:
-                node_text = self.documents[current_node].page_content
-                similar_nodes.append((node_text, similarity_so_far))
+                similar_nodes.append((current_node, similarity_so_far))
 
             compute_similarity_partial = delayed(self.compute_similarity)
             results = Parallel(n_jobs=-1)(compute_similarity_partial(neighbor, self.graph, self.documents, query_embedding) for neighbor in (self.graph.neighbors(current_node) if current_node is not None else range(len(self.documents)-1)))
@@ -215,27 +231,23 @@ class GraphRAG():
         return similar_nodes
 
     def similarity_search(self, query, retrieval_model="a_star", k = 5):
-        
         retrieval_model=self.retrieval_model
+        similar_nodes = []
 
         if retrieval_model == "a_star":
-            similar_nodes = self.a_star_search_parallel(self.graph, self.documents, self.embeddings, query, k=5)
+            similar_indices = [index for index, _ in self.a_star_search_parallel(self.graph, self.documents, self.embeddings, query, k)]
         elif retrieval_model == "nearest_neighbors":
-            similar_nodes = self.nearest_neighbors_parallel(query)
+            similar_indices = [index for index, _ in self.nearest_neighbors_parallel(query, k)]
         elif retrieval_model == "nearest_neighbors1":
-            similar_nodes = self.nearest_neighbors_sklearn_parallel(self.embeddings, query, k=5)
+            similar_indices = [index for index, _ in self.nearest_neighbors_sklearn_parallel(self.embeddings, query, k)]
         elif retrieval_model == "greedy":
-            similar_nodes = self.greedy_bfs_search_parallel(query, k = 5)
-        l_text = []
-        for node, similarity in similar_nodes:
-            l_text.append(node)
-            # print(f"Similarity: {similarity:.4f}, Node: {node}")
+            similar_indices = [index for index, _ in self.greedy_bfs_search_parallel(query, k)]
 
-        return l_text
+        return [self.documents[index] for index in similar_indices]
 
     def queryLLM(self, query):
-        l_text = self.similarity_search(query)
-        full_text = "\n".join(l_text)
+        similar_documents = self.similarity_search(query)
+        full_text = "\n".join([doc.page_content for doc in similar_documents])
 
         prompt_template = """
         You are an assistant that answers user's queries, you will be given a context and and some instruction, you will answer the query based on this,
@@ -359,6 +371,18 @@ class KnowledgeRAG():
         llm=ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125")
         return llm
 
+    def load_text_into_graph(self, text, chunk_size = 1500, chunk_overlap = 150):
+        text_splitter = CharacterTextSplitter(
+            separator="\n\n",
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            length_function=len,
+            is_separator_regex=False,
+        )
+        docs1 = text_splitter.create_documents([file])
+        docs = gr.generate_graph_from_text(docs1)
+        self.ingest_data_into_graph(docs)
+    
     def create_entity_chain(self):
         prompt = ChatPromptTemplate.from_messages(
             [
