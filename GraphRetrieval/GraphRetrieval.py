@@ -52,6 +52,28 @@ class Entities(BaseModel):
         "appear in the text",
     )
 
+import os
+import networkx as nx
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.neighbors import NearestNeighbors
+import heapq
+from joblib import Parallel, delayed
+from langchain_text_splitters import CharacterTextSplitter
+from openai import OpenAI
+import pickle
+import langchain_core
+import PyPDF2
+from queue import PriorityQueue
+
+
+class GraphDocument(langchain_core.documents.base.Document):
+    def __init__(self, page_content, metadata):
+        super().__init__(page_content=page_content, metadata=metadata)
+
+    def __repr__(self):
+        return f"GraphDocument(page_content='{self.page_content}', metadata={self.metadata})"
+    
 
 class GraphRAG():
     def __init__(self):
@@ -159,12 +181,12 @@ class GraphRAG():
         query_embedding = model.encode([query_text])[0]
         similarities = cosine_similarity([query_embedding], self.embeddings)
         sorted_indices = sorted(range(len(similarities[0])), key=lambda x: -similarities[0][x])[:k]
-        similar_nodes = Parallel(n_jobs=-1)(delayed(self._get_similarity)(i, similarities, sorted_indices) for i in range(k))
-        return similar_nodes
+        similar_indices = Parallel(n_jobs=-1)(delayed(self._get_similarity)(i, similarities, sorted_indices) for i in range(k))
+        return similar_indices
 
     def _get_similarity(self, i, similarities, sorted_indices):
         idx = sorted_indices[i]
-        return self.documents[idx], similarities[0][idx]
+        return idx, similarities[0][idx]
 
     def nearest_neighbors_sklearn_parallel(self, embeddings, query_text, k=5):
         model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -175,12 +197,12 @@ class GraphRAG():
 
         distances, indices = nn_model.kneighbors([query_embedding])
 
-        similar_nodes = Parallel(n_jobs=-1)(delayed(self._get_similarity_sklearn)(i, distances, indices, self.documents) for i in range(k))
-        return similar_nodes
+        similar_indices = Parallel(n_jobs=-1)(delayed(self._get_similarity_sklearn)(i, distances, indices) for i in range(k))
+        return similar_indices
 
-    def _get_similarity_sklearn(self, i, distances, indices, documents):
+    def _get_similarity_sklearn(self, i, distances, indices):
         idx = indices[0][i]
-        return documents[idx], 1 - distances[0][i]
+        return idx, 1 - distances[0][i]
 
     def greedy_bfs_search_parallel(self, query_text, k=5):
         model = SentenceTransformer(self.embedding_model)
@@ -295,8 +317,7 @@ class GraphRAG():
             for page_num in range(num_pages):
                 text += pdf_reader.getPage(page_num).extractText()
         self.graph, self.documents, self.embeddings = self.constructGraph(text, similarity_threshold=similarity_threshold)
-        print("Graph created Successfully!")
-
+        print("Graph created Successfully!")   
 
 
 
