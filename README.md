@@ -13,7 +13,7 @@ Setting Up Environment Variables
 
 Before using the library, set up the necessary environment variables for Neo4j and OpenAI:
 
-python
+```python
 
 import os
 
@@ -21,13 +21,15 @@ os.environ["NEO4J_URI"] = "add your Neo4j URI here"
 os.environ["NEO4J_USERNAME"] = "add your Neo4j username here"
 os.environ["NEO4J_PASSWORD"] = "add your Neo4j password here"
 os.environ['OPENAI_API_KEY'] = "add your OpenAI API key here"
+```
 
-GraphRAG
+## GraphRAG
 
 GraphRAG is used to create and query graphs based on text documents.
-Example
 
-python
+### Example
+
+```python
 
 import GraphRetrieval
 from GraphRetrieval import GraphRAG
@@ -41,13 +43,15 @@ print(grag.queryLLM("Ask your query here"))
 # Switch to greedy search
 grag.retrieval_model = "greedy"
 print(grag.queryLLM("Ask your query here"))
+```
 
-KnowledgeRAG
+## KnowledgeRAG
 
 KnowledgeRAG integrates with a knowledge graph and supports hybrid searches combining structured and unstructured data.
-Example
 
-python
+### Example
+
+```python
 
 from GraphRetrieval import KnowledgeRAG
 from langchain_community.graphs import Neo4jGraph
@@ -68,12 +72,13 @@ print(gchain.invoke({"question": "Ask your query here"}))
 gr.init_neo4j_vector_index()
 gr.hybrid = True
 print(gchain.invoke({"question": "Ask your query here"}))
+```
 
-Ingesting Data into Graph
+### Ingesting Data into Graph
 
 Ingest large text data into the knowledge graph.
 
-python
+```python
 
 text = """
 some large text here
@@ -95,18 +100,20 @@ gr.ingest_data_into_graph(docs)
 
 gr.init_neo4j_vector_index()
 print(gchain.invoke({"question": "Ask your query here"}))
+```
 
-Hybrid Search with GraphRetrieval and Knowledge Base
+## Hybrid Search with GraphRetrieval and Knowledge Base
 
 Combine GraphRAG and KnowledgeRAG for hybrid search.
 
-python
+```python
 
 gr.vector_index = grag
 gr.hybrid = True
 print(gchain.invoke({"question": "Ask your query here"}))
+```
 
-Contributing
+#### Contributing
 
 Contributions are welcome! Please submit a pull request or open an issue to discuss what you would like to change.
 License
