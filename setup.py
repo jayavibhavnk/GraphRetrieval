@@ -89,9 +89,7 @@ Ingest large text data into the knowledge graph.
 
 ```python
 
-text = """
-some large text here
-"""
+text = "some large text here"
 
 from langchain_text_splitters import CharacterTextSplitter
 
