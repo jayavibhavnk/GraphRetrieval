@@ -2,7 +2,7 @@
 from .GraphRetrieval import GraphRAG, KnowledgeRAG
 
 # Defining the public API
-__all__ = ['GraphRAG', 'KnowledgeRAG']
+__all__ = ['GraphRAG', 'KnowledgeRAG', 'ImageGraphRag']
 
 # Version information
-__version__ = '1.0.0'
+__version__ = '0.1.3'
