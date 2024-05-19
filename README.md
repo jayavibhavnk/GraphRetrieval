@@ -7,8 +7,13 @@ GraphRetrieval is a Python library designed for advanced text retrieval and know
 ```bash
 pip install -e git+https://github.com/jayavibhavnk/GraphRetrieval.git#egg=GraphRetrieval
 ```
+## or 
 
-Usage
+```bash
+pip install GraphRetrieval
+```
+
+### Usage
 Setting Up Environment Variables
 
 Before using the library, set up the necessary environment variables for Neo4j and OpenAI:
