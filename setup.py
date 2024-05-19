@@ -89,7 +89,9 @@ Ingest large text data into the knowledge graph.
 
 ```python
 
-text = "some large text here"
+text = """
+some large text here
+"""
 
 from langchain_text_splitters import CharacterTextSplitter
 
@@ -120,6 +122,25 @@ gr.hybrid = True
 print(gchain.invoke({"question": "Ask your query here"}))
 ```
 
+## Image Graph RAG
+
+Use directories of images for searching similar images.
+
+```python
+image_graph_rag = ImageGraphRAG()
+image_paths = image_graph_rag.create_graph_from_directory('/content/images')
+similar_images = image_graph_rag.similarity_search('/content/images/car.jpg', k=5)
+
+for doc in similar_images:
+    print(doc.metadata["path"])
+```
+
+```python
+image_graph_rag.visualize_graph() # for graph visualization
+```
+
+
+
 #### Contributing
 
 Contributions are welcome! Please submit a pull request or open an issue to discuss what you would like to change.
@@ -128,7 +149,6 @@ License
 This project is licensed under the MIT License. See the LICENSE file for details.
 
 This `README.md` provides an overview of the GraphRetrieval library, installation instructions, and example usage scenarios, with the specified changes to the file path and environment variables sections.
-
 """
 
 setup(
