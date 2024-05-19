@@ -11,7 +11,7 @@ pip install -e git+https://github.com/jayavibhavnk/GraphRetrieval.git#egg=GraphR
 or 
 
 ```bash
-pi install GraphRetrieval
+pip install GraphRetrieval
 ```
 
 Usage
