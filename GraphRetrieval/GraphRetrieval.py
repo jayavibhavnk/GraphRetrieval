@@ -515,6 +515,18 @@ class KnowledgeRAG():
 
 ## image rag
 
+import os
+import networkx as nx
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.neighbors import NearestNeighbors
+import heapq
+from joblib import Parallel, delayed
+from PIL import Image
+from torchvision import models, transforms
+import torch
+import pickle
+
 class ImageGraphRAG:
     def __init__(self):
         self.graph = None
@@ -529,22 +541,27 @@ class ImageGraphRAG:
         ])
         self.retrieval_model = "a_star"
 
-    def image_to_embedding(self, image_path):
-        image = Image.open(image_path).convert('RGB')
+    def image_to_embedding(self, image):
+        if isinstance(image, str):
+            image = Image.open(image).convert('RGB')
         image = self.transform(image)
         image = image.unsqueeze(0)  # add batch dimension
         with torch.no_grad():
             embedding = self.embedding_model(image).numpy().flatten()
         return embedding
 
-    def constructGraph(self, image_paths, similarity_threshold=0.5):
-        documents = [GraphDocument(image_path, {"path": image_path}) for image_path in image_paths]
-        embeddings = [self.image_to_embedding(image_path) for image_path in image_paths]
+    def constructGraph(self, images, similarity_threshold=0.5):
+        if all(isinstance(image, str) for image in images):
+            documents = [GraphDocument(image, {"path": image}) for image in images]
+        else:
+            documents = [GraphDocument("Image Object", {"image": image}) for image in images]
+        
+        embeddings = [self.image_to_embedding(image) for image in images]
         graph = nx.Graph()
 
         def add_edges(i):
             edges = []
-            for j in range(i , len(documents)):
+            for j in range(i, len(documents)):
                 similarity = cosine_similarity([embeddings[i]], [embeddings[j]])[0][0]
                 if similarity > similarity_threshold:
                     edges.append((i, j, similarity))
@@ -608,12 +625,17 @@ class ImageGraphRAG:
             self.graph, self.documents, self.embeddings = pickle.load(file)
             print("loaded!")
 
-    def create_graph_from_directory(self, directory_path, similarity_threshold=0.5):
-        image_paths = [os.path.join(directory_path, fname) for fname in os.listdir(directory_path) if fname.lower().endswith(('png', 'jpg', 'jpeg'))]
-        self.graph, self.documents, self.embeddings = self.constructGraph(image_paths, similarity_threshold)
+    def create_graph_from_directory(self, directory_path=None, images=None, similarity_threshold=0.5):
+        if directory_path:
+            image_paths = [os.path.join(directory_path, fname) for fname in os.listdir(directory_path) if fname.lower().endswith(('png', 'jpg', 'jpeg'))]
+            self.graph, self.documents, self.embeddings = self.constructGraph(image_paths, similarity_threshold)
+        elif images:
+            self.graph, self.documents, self.embeddings = self.constructGraph(images, similarity_threshold)
+        else:
+            raise ValueError("Either directory_path or images must be provided.")
         print("Graph created Successfully!")
-        return image_paths
-    
+        return self.documents
+        
     def visualize_graph(self):
         pos = nx.spring_layout(self.graph)
         nx.draw(self.graph, pos, with_labels=True, node_color='skyblue', edge_color='gray', node_size=1000, font_size=10)
