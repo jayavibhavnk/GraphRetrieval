@@ -167,7 +167,6 @@ setup(
       'langchain-openai',
       'langchain-experimental',
       'neo4j',
-      'wikipedia',
       'tiktoken',
       'pypdf2'
     ],
