@@ -280,7 +280,7 @@ class GraphRAG():
             num_pages = len(pdf_reader.pages)
             text = ""
             for i in range(num_pages):
-                page = reader.pages[i]
+                page = pdf_reader.pages[i]
                 page_text = page.extract_text()
                 text = text + page_text
         self.graph, self.documents, self.embeddings = self.constructGraph(text, similarity_threshold=similarity_threshold)
