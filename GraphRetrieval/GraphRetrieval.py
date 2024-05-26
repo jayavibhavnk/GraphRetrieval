@@ -277,10 +277,12 @@ class GraphRAG():
     def create_graph_from_pdf(self, pdf_file, similarity_threshold=0, chunk_size = 1250, chunk_overlap = 100):
         with open(pdf_file, "rb") as f:
             pdf_reader = PyPDF2.PdfReader(f)
-            num_pages = pdf_reader.numPages
+            num_pages = len(reader.pages)
             text = ""
-            for page_num in range(num_pages):
-                text += pdf_reader.getPage(page_num).extractText()
+            for i in range(num_pages):
+                page = reader.pages[i]
+                page_text = page.extract_text()
+                text = text + page_text
         self.graph, self.documents, self.embeddings = self.constructGraph(text, similarity_threshold=similarity_threshold)
         print("Graph created Successfully!")   
 
