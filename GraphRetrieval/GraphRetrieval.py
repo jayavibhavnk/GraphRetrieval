@@ -276,7 +276,7 @@ class GraphRAG():
 
     def create_graph_from_pdf(self, pdf_file, similarity_threshold=0, chunk_size = 1250, chunk_overlap = 100):
         with open(pdf_file, "rb") as f:
-            pdf_reader = PyPDF2.PdfFileReader(f)
+            pdf_reader = PyPDF2.PdfReader(f)
             num_pages = pdf_reader.numPages
             text = ""
             for page_num in range(num_pages):
