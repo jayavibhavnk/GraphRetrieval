@@ -151,7 +151,7 @@ This `README.md` provides an overview of the GraphRetrieval library, installatio
 
 setup(
     name='GraphRetrieval',
-    version='0.1.7',
+    version='0.1.8',
     description='Graph retrieval',
     long_description=long_description,
     long_description_content_type='text/markdown',
