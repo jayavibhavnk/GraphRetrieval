@@ -168,7 +168,7 @@ setup(
       'langchain-experimental',
       'neo4j',
       'tiktoken',
-      'pypdf2'
+      'pypdf2==3.0.0'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha'
