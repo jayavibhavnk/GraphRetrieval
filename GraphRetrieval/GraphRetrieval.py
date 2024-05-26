@@ -230,15 +230,16 @@ class GraphRAG():
         return ans
 
     def query_openai(self, query):
-        openai.api_key = "YOUR_OPENAI_API_KEY"
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        client = OpenAI()
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo-0125",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant"},
                 {"role": "user", "content": query}
-            ]
+            ],
+            n=1
         )
-        return response['choices'][0]['message']['content']
+        return(completion.choices[0].message.content)
 
     def save_db(self, file_path):
         with open(file_path, 'wb') as file:
