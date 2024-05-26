@@ -137,7 +137,7 @@ for doc in similar_images:
 image_graph_rag.visualize_graph() # for graph visualization
 ```
 
-
+### Note: This is a new version without parallelization, use 0.1.5>= for parallelization.
 
 #### Contributing
 
@@ -151,7 +151,7 @@ This `README.md` provides an overview of the GraphRetrieval library, installatio
 
 setup(
     name='GraphRetrieval',
-    version='0.1.5',
+    version='0.1.6',
     description='Graph retrieval',
     long_description=long_description,
     long_description_content_type='text/markdown',
