@@ -40,6 +40,15 @@ from torchvision import models, transforms
 from ..base.document.py import GraphDocument
 from ..utils.text_splitter import CharacterTextSplitter
 
+from langchain_core.pydantic_v1 import BaseModel, Field
+from typing import List
+
+class Entities(BaseModel):
+    """Identifying information about entities."""
+    names: List[str] = Field(
+        ...,
+        description="All the person, organization, or business entities that appear in the text",
+    )
 
 _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question,
 in its original language.
