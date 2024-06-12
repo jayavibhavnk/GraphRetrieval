@@ -37,7 +37,8 @@ from queue import PriorityQueue
 from PIL import Image
 from torchvision import models, transforms
 
-
+from ..base.document.py import GraphDocument
+from ..utils.text_splitter import CharacterTextSplitter
 
 class ImageGraphRAG:
     def __init__(self):
