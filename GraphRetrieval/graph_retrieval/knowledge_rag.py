@@ -37,6 +37,10 @@ from queue import PriorityQueue
 from PIL import Image
 from torchvision import models, transforms
 
+from ..base.document.py import GraphDocument
+from ..utils.text_splitter import CharacterTextSplitter
+
+
 _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question,
 in its original language.
 Chat History:
